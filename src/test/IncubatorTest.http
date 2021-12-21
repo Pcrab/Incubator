@@ -1,0 +1,28 @@
+POST http://127.0.0.1:8080/incubator/0000-0000-0000-0001
+Content-Type: application/json
+
+{
+  "serialNumber": "0000-0000-0000-0001",
+  "incubators": [{"id": 0}, {"id": 1}]
+}
+
+###
+POST http://127.0.0.1:8080/incubator/0000-0000-0000-0001
+Content-Type: application/json
+
+{
+"serialNumber": "0000-0000-0000-0001",
+"incubators": [{"id": 0}, {"id": 2}]
+}
+
+###
+POST http://127.0.0.1:8080/incubator/0000-0000-0000-0001/2
+Content-Type: application/json
+
+{
+  "id": 2
+}
+
+###
+GET http://127.0.0.1:8080/incubator/0000-0000-0000-0001
+Accept: application/json
