@@ -14,6 +14,9 @@ fun Application.module() {
     install(ContentNegotiation) {
         json()
     }
+    install(CORS) {
+        anyHost()
+    }
     configureRouting()
     configureMonitoring()
 }
