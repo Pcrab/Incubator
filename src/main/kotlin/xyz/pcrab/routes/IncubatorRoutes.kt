@@ -60,24 +60,6 @@ suspend fun getIncubatorId(call: ApplicationCall): Int? {
     return null
 }
 
-suspend fun badRequest(call: ApplicationCall, text: String = "Bad Request") {
-    call.respondText(
-        text, status = HttpStatusCode.BadRequest
-    )
-}
-
-//  suspend fun forbidden(call: ApplicationCall, text: String = "Forbidden") {
-//      call.respondText(
-//          text, status = HttpStatusCode.Forbidden
-//      )
-//  }
-
-suspend fun notFound(call: ApplicationCall, text: String = "Not Found") {
-    call.respondText(
-        text, status = HttpStatusCode.NotFound
-    )
-}
-
 fun Application.registerIncubatorRoutes() {
     routing {
         getIncubatorStatusRoute()

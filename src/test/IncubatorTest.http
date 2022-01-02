@@ -7,14 +7,13 @@ Content-Type: application/json
 }
 
 ###
-POST http://127.0.0.1:8080/incubator/0000-0000-0000-0001
-Content-Type: application/json
-
-{
-"serialNumber": "0000-0000-0000-0001",
-"incubators": [{"id": 0}, {"id": 2}]
-}
-
-###
 GET http://127.0.0.1:8080/incubator/0000-0000-0000-0001
 Accept: application/json
+
+###
+GET http://127.0.0.1:8080/user/pcrab/pxw62316187
+Accept: text/plain
+
+###
+POST http://127.0.0.1:8080/user/pcrab/pxw62316187
+Content-Type: text/plain

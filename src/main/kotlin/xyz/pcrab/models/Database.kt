@@ -5,11 +5,19 @@ import java.time.LocalDateTime
 
 
 private const val uri = "mongodb://root:example@localhost:27017"
-private const val dbName = "incubators"
-private val db = KMongo.createClient(uri).getDatabase(dbName)
+private const val incubatorDbName = "incubators"
+private const val userCollection = "users"
+private val incubatorDb = KMongo.createClient(uri).getDatabase(incubatorDbName)
+
 private class IncubatorList(
     val time: LocalDateTime,
     val incubators: MutableList<Incubator>
+)
+
+private class DbUser(
+    val username: String,
+    val password: String,
+    val session: String
 )
 
 fun updateContent(content: IncubatorGroup) {
@@ -17,14 +25,16 @@ fun updateContent(content: IncubatorGroup) {
     for (incubator in content.incubators) {
         incubators.add(incubator)
     }
-    db.getCollection<IncubatorList>(content.serialNumber).insertOne(IncubatorList(
-        LocalDateTime.now(),
-        incubators
-    ))
+    incubatorDb.getCollection<IncubatorList>(content.serialNumber).insertOne(
+        IncubatorList(
+            LocalDateTime.now(),
+            incubators
+        )
+    )
 }
 
 fun getContent(serialNumber: String): IncubatorGroup? {
-    val col = db.getCollection<IncubatorList>(serialNumber)
+    val col = incubatorDb.getCollection<IncubatorList>(serialNumber)
 //    col.ensureIndex("{'_id':-1}")
     val incubatorList = col.find().sort("{'_id':-1}").first()
     println(incubatorList)
@@ -35,4 +45,39 @@ fun getContent(serialNumber: String): IncubatorGroup? {
         )
     }
     return null
+}
+
+fun getUserSession(user: User): String {
+    val col = incubatorDb.getCollection<DbUser>(userCollection)
+    val sessionUser = col.findOne(DbUser::username eq user.username, DbUser::password eq user.password)
+    if (sessionUser != null) {
+        return sessionUser.session
+    }
+    return ""
+}
+
+fun getUserSession(session: String): String {
+    val col = incubatorDb.getCollection<DbUser>(userCollection)
+    val sessionUser = col.findOne(DbUser::session eq session)
+    if (sessionUser != null) {
+        return sessionUser.session
+    }
+    return ""
+}
+
+fun createUserSession(user: User): String? {
+    val session = user.username + user.password
+    val col = incubatorDb.getCollection<DbUser>(userCollection)
+    val dbuser = col.findOne(DbUser::username eq user.username)
+    if (dbuser != null) {
+        return null
+    }
+    col.insertOne(
+        DbUser(
+            user.username,
+            user.password,
+            session
+        )
+    )
+    return session
 }
