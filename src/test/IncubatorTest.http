@@ -15,5 +15,5 @@ GET http://127.0.0.1:8080/user/pcrab/pxw62316187
 Accept: text/plain
 
 ###
-POST http://127.0.0.1:8080/user/pcrab/pxw62316187
+POST http://127.0.0.1:8080/user/pcrab/pxw62316187/0000-0000-0000-0001
 Content-Type: text/plain

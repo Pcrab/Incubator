@@ -17,7 +17,8 @@ private class IncubatorList(
 private class DbUser(
     val username: String,
     val password: String,
-    val session: String
+    val session: String,
+    val serialNumber: String
 )
 
 fun updateContent(content: IncubatorGroup) {
@@ -68,15 +69,20 @@ fun getUserSession(session: String): String {
 fun createUserSession(user: User): String? {
     val session = user.username + user.password
     val col = incubatorDb.getCollection<DbUser>(userCollection)
-    val dbuser = col.findOne(DbUser::username eq user.username)
-    if (dbuser != null) {
+    val dbuserThroughUsername = col.findOne(DbUser::username eq user.username)
+    if (dbuserThroughUsername != null) {
+        return null
+    }
+    val userWithSerialNumber = col.find(DbUser::serialNumber eq user.serialNumber)
+    if (!(0..10).contains(userWithSerialNumber.count())) {
         return null
     }
     col.insertOne(
         DbUser(
             user.username,
             user.password,
-            session
+            session,
+            user.serialNumber
         )
     )
     return session

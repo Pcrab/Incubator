@@ -9,7 +9,7 @@ fun Route.getUserSessionRoute() {
     get("/user/{username}/{password}") {
         val username = call.parameters["username"]
         val password = call.parameters["password"]
-        if (username != null && password != null) {
+        if (!username.isNullOrBlank() && !password.isNullOrBlank()) {
             val session = getSession(username, password)
             if (session != "") {
                 call.respond(session)
@@ -22,7 +22,7 @@ fun Route.getUserSessionRoute() {
     }
     get("/user/{session}") {
         val session = call.parameters["session"]
-        if (session != null) {
+        if (!session.isNullOrBlank()) {
             val newSession = getSession(session)
             call.respond(newSession)
         } else {
@@ -32,11 +32,12 @@ fun Route.getUserSessionRoute() {
 }
 
 fun Route.createUserRoute() {
-    post("/user/{username}/{password}") {
+    post("/user/{username}/{password}/{serialNumber}") {
         val username = call.parameters["username"]
         val password = call.parameters["password"]
-        if (username != null && password != null) {
-            val session = createSession(username, password)
+        val serialNumber = call.parameters["serialNumber"]
+        if (!username.isNullOrBlank() && !password.isNullOrBlank() && !serialNumber.isNullOrBlank()) {
+            val session = createSession(username, password, serialNumber)
             if (session != null) {
                 call.respond(session)
             }
