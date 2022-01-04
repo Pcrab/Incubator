@@ -14,13 +14,6 @@ private class IncubatorList(
     val incubators: MutableList<Incubator>
 )
 
-private class DbUser(
-    val username: String,
-    val password: String,
-    val session: String,
-    val serialNumber: String
-)
-
 fun updateContent(content: IncubatorGroup) {
     val incubators = mutableListOf<Incubator>()
     for (incubator in content.incubators) {
@@ -48,40 +41,26 @@ fun getContent(serialNumber: String): IncubatorGroup? {
     return null
 }
 
-fun getUserSession(user: User): String {
-    val col = incubatorDb.getCollection<DbUser>(userCollection)
-    val sessionUser = col.findOne(DbUser::username eq user.username, DbUser::password eq user.password)
-    if (sessionUser != null) {
-        return sessionUser.session
-    }
-    return ""
+fun getDbUser(username: String, password: String): User?{
+    val col = incubatorDb.getCollection<User>(userCollection)
+    return col.findOne(User::username eq username, User::password eq password)
 }
 
-fun getUserSession(session: String): String {
-    val col = incubatorDb.getCollection<DbUser>(userCollection)
-    val sessionUser = col.findOne(DbUser::session eq session)
-    if (sessionUser != null) {
-        return sessionUser.session
-    }
-    return ""
-}
-
-fun createUserSession(user: User): String? {
+fun createDbUser(user: User): String? {
     val session = user.username + user.password
-    val col = incubatorDb.getCollection<DbUser>(userCollection)
-    val dbuserThroughUsername = col.findOne(DbUser::username eq user.username)
-    if (dbuserThroughUsername != null) {
+    val col = incubatorDb.getCollection<User>(userCollection)
+    val userThroughUsername = col.findOne(User::username eq user.username)
+    if (userThroughUsername != null) {
         return null
     }
-    val userWithSerialNumber = col.find(DbUser::serialNumber eq user.serialNumber)
+    val userWithSerialNumber = col.find(User::serialNumber eq user.serialNumber)
     if (!(0..10).contains(userWithSerialNumber.count())) {
         return null
     }
     col.insertOne(
-        DbUser(
+        User(
             user.username,
             user.password,
-            session,
             user.serialNumber
         )
     )

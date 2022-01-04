@@ -1,10 +1,10 @@
 package xyz.pcrab
 
 import io.ktor.application.*
-import io.ktor.auth.*
 import io.ktor.features.*
 import io.ktor.serialization.*
 import io.ktor.sessions.*
+import xyz.pcrab.models.UserSession
 import xyz.pcrab.plugins.*
 
 fun main(args: Array<String>): Unit =
@@ -17,10 +17,13 @@ fun Application.module() {
         json()
     }
     install(CORS) {
-        anyHost()
+        host("127.0.0.1:8000")
+        host("localhost:63342")
+        allowCredentials = true
     }
-    install(Authentication)
-    install(Sessions)
+    install(Sessions) {
+        cookie<UserSession>("user_session", storage = SessionStorageMemory())
+    }
     configureRouting()
     configureMonitoring()
 }

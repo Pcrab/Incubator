@@ -1,19 +1,22 @@
 package xyz.pcrab.models
 
-class User (
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class User (
     val username: String,
     val password: String,
     val serialNumber: String
 )
 
-fun getSession(username: String, password: String): String {
-    return getUserSession(User(username, password, ""))
+@Serializable
+data class UserSession (
+    val username: String
+)
+fun getUser(username: String, password: String): User? {
+    return getDbUser(username, password)
 }
 
-fun getSession(session: String): String {
-    return getUserSession(session)
-}
-
-fun createSession(username: String, password: String, serialNumber: String): String? {
-    return createUserSession(User(username, password, serialNumber))
+fun createUser(username: String, password: String, serialNumber: String): String? {
+    return createDbUser(User(username, password, serialNumber))
 }
