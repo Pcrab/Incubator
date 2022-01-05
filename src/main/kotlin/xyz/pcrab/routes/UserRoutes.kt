@@ -50,10 +50,12 @@ fun Route.createUserRoute() {
             val user = createUser(username, password, serialNumber)
             if (user != null) {
                 call.respond(user)
+            }else {
+                badRequest(call, "username has been registered")
             }
-            badRequest(call, "username has been registered")
+        } else {
+            badRequest(call)
         }
-        badRequest(call)
     }
 }
 
