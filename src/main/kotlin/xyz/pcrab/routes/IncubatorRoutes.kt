@@ -8,15 +8,9 @@ import io.ktor.routing.*
 import xyz.pcrab.models.*
 
 fun Route.getIncubatorStatusRoute() {
-    get("/incubator/{serialNumber}/{id?}") {
+    get("/incubator/{serialNumber}") {
         val group = getIncubatorGroup(getIncubatorSerialNumber(call)) ?: return@get notFound(call)
-        val id = getIncubatorId(call)
-        if (id != null) {
-            val incubator = getIncubator(group, id) ?: return@get notFound(call)
-            call.respond(incubator)
-        } else {
-            call.respond(group)
-        }
+        call.respond(group)
     }
 }
 
@@ -46,18 +40,6 @@ suspend fun getIncubatorSerialNumber(call: ApplicationCall, pattern: String = de
     }
     badRequest(call)
     return ""
-}
-
-suspend fun getIncubatorId(call: ApplicationCall): Int? {
-    val id = call.parameters["id"]
-    if (id != null) {
-        try {
-            return id.toInt()
-        } catch (e: NumberFormatException) {
-            badRequest(call)
-        }
-    }
-    return null
 }
 
 fun Application.registerIncubatorRoutes() {
