@@ -19,6 +19,9 @@ data class SecretObject(
     val realm: String
 )
 
+const val expireMaxTime = 86400000
+const val refreshMinTime = 43200000
+
 fun getSecretObject(args: Array<String>): SecretObject {
     var secretObject = SecretObject("", "", "", "")
     if (args.isNotEmpty() && File(args[0]).exists()) {

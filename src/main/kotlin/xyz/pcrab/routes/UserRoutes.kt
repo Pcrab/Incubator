@@ -23,16 +23,16 @@ import java.util.*
 fun Route.authRoute(secretObject: SecretObject, jwkProvider: JwkProvider) {
     fun genToken(username: String): String? {
         val publicKey = jwkProvider.get("77aa6010-5b6c-4c91-a75e-c09931d8e45b").publicKey
-        println("publicKey: " + publicKey)
+        println("publicKey: $publicKey")
         val keySpecPKCS8 = PKCS8EncodedKeySpec(Base64.getDecoder().decode(secretObject.privateKeyString))
-        println("keySpecPKCS8: " + keySpecPKCS8)
+        println("keySpecPKCS8: $keySpecPKCS8")
         val privateKey = KeyFactory.getInstance("RSA").generatePrivate(keySpecPKCS8)
-        println("privateKey: " + privateKey)
+        println("privateKey: $privateKey")
         return JWT.create()
             .withAudience(secretObject.audience)
             .withIssuer(secretObject.issuer)
             .withClaim("username", username)
-            .withExpiresAt(Date(System.currentTimeMillis() + 10000))
+            .withExpiresAt(Date(System.currentTimeMillis() + expireMaxTime))
             .sign(Algorithm.RSA256(publicKey as RSAPublicKey, privateKey as RSAPrivateKey))
 
     }
@@ -54,7 +54,7 @@ fun Route.authRoute(secretObject: SecretObject, jwkProvider: JwkProvider) {
             val dbUser = getUser(username, password)
             if (dbUser != null) {
                 val token = genToken(username)
-                println("token: " + token)
+                println("token: $token")
                 call.respond(hashMapOf("token" to token))
             } else {
                 notFound(call, "username or password not found")
@@ -69,7 +69,13 @@ fun Route.authRoute(secretObject: SecretObject, jwkProvider: JwkProvider) {
             val principle = call.principal<JWTPrincipal>()
             val username = principle!!.payload.getClaim("username").asString()
             val expiresAt = principle.expiresAt?.time?.minus(System.currentTimeMillis())
-            call.respondText("Hello, $username! Token is expired at $expiresAt ms.")
+            if (expiresAt != null && expiresAt < refreshMinTime) {
+                println("need refresh!")
+                val token = genToken(username)
+                call.respond(hashMapOf("token" to token))
+            } else {
+                call.respond(hashMapOf("token" to null))
+            }
         }
     }
 }

@@ -6,17 +6,16 @@ import io.ktor.auth.*
 import io.ktor.auth.jwt.*
 import io.ktor.features.*
 import io.ktor.http.*
-import io.ktor.response.*
 import io.ktor.serialization.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import xyz.pcrab.models.getSecretObject
 import xyz.pcrab.plugins.*
+import xyz.pcrab.routes.notFound
 import java.util.concurrent.TimeUnit
 
 
 fun main(args: Array<String>) {
-    println(args)
 
     val secretObject = getSecretObject(args)
     val jwkProvider = JwkProviderBuilder(secretObject.issuer)
@@ -30,7 +29,7 @@ fun main(args: Array<String>) {
         install(CORS) {
             anyHost()
             header(HttpHeaders.ContentType)
-//            header(HttpHeaders.Authorization)
+            header(HttpHeaders.Authorization)
         }
         install(Authentication) {
             jwt("auth-jwt") {
@@ -46,7 +45,7 @@ fun main(args: Array<String>) {
                     }
                 }
                 challenge { _, _ ->
-                    call.respond("{\"token\": null}")
+                    notFound(call, "token not found!")
                 }
             }
         }
