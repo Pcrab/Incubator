@@ -10,8 +10,6 @@ import io.ktor.http.content.*
 import io.ktor.request.*
 import io.ktor.response.*
 import io.ktor.routing.*
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.json.Json
 import xyz.pcrab.models.*
 import java.io.File
 import java.security.KeyFactory
@@ -23,11 +21,8 @@ import java.util.*
 fun Route.authRoute(secretObject: SecretObject, jwkProvider: JwkProvider) {
     fun genToken(username: String): String? {
         val publicKey = jwkProvider.get("77aa6010-5b6c-4c91-a75e-c09931d8e45b").publicKey
-        println("publicKey: $publicKey")
         val keySpecPKCS8 = PKCS8EncodedKeySpec(Base64.getDecoder().decode(secretObject.privateKeyString))
-        println("keySpecPKCS8: $keySpecPKCS8")
         val privateKey = KeyFactory.getInstance("RSA").generatePrivate(keySpecPKCS8)
-        println("privateKey: $privateKey")
         return JWT.create()
             .withAudience(secretObject.audience)
             .withIssuer(secretObject.issuer)
@@ -41,10 +36,7 @@ fun Route.authRoute(secretObject: SecretObject, jwkProvider: JwkProvider) {
         val username: String
         val password: String
         try {
-            print("user: ")
-            val text = call.receiveText()
-            val user = Json.decodeFromString<AuthUser>(text)
-            println(text)
+            val user = call.receive<AuthUser>()
             username = user.username
             password = user.password
         } catch (e: Exception) {
