@@ -49,8 +49,10 @@ fun main(args: Array<String>) {
                 }
             }
         }
+        install(XForwardedHeaderSupport)
         configureRouting(secretObject, jwkProvider)
         configureMonitoring()
+
     }.start(wait = true)
 }
 
