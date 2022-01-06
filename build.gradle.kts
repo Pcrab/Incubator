@@ -1,14 +1,12 @@
 val ktorVersion: String by project
 val kotlinVersion: String by project
 val logbackVersion: String by project
-val exposedVersion: String by project
-val kmongoVersion: String by project
-val gsonVersion: String by project
 
 plugins {
     application
     kotlin("jvm") version "1.6.10"
     kotlin("plugin.serialization") version "1.6.10"
+    // Package into fatJar(shadowJar)
     id("com.github.johnrengelman.shadow") version "7.0.0"
 }
 
@@ -44,18 +42,9 @@ dependencies {
     implementation("io.ktor:ktor-auth:$ktorVersion")
     implementation("io.ktor:ktor-auth-jwt:$ktorVersion")
 
-    // Gson
-    implementation("com.google.code.gson:gson:$gsonVersion")
-
-
-
     testImplementation("io.ktor:ktor-server-tests:$ktorVersion")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
 
-//    // ORM
-//    implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
-//    implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
-//    implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
     // KMongo
-    implementation("org.litote.kmongo:kmongo:$kmongoVersion")
+    implementation("org.litote.kmongo:kmongo:4.4.0")
 }

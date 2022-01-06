@@ -5,12 +5,7 @@ import java.security.MessageDigest
 
 @Serializable
 data class User(
-    val username: String, val password: String, val serialNumber: String
-)
-
-@Serializable
-data class UserSession(
-    val username: String
+    val username: String, val password: String, val serialNumber: String?
 )
 
 fun String.encryptThroughSHA256(): String {
