@@ -60,13 +60,17 @@ fun Route.authRoute(secretObject: SecretObject, jwkProvider: JwkProvider) {
         get("/hello") {
             val principle = call.principal<JWTPrincipal>()
             val username = principle!!.payload.getClaim("username").asString()
-            val expiresAt = principle.expiresAt?.time?.minus(System.currentTimeMillis())
-            if (expiresAt != null && expiresAt < refreshMinTime) {
-                println("need refresh!")
-                val token = genToken(username)
-                call.respond(hashMapOf("token" to token))
+            if (isValidUsername(username) && getDbUserUnsafe(username) != null) {
+                val expiresAt = principle.expiresAt?.time?.minus(System.currentTimeMillis())
+                if (expiresAt != null && expiresAt < refreshMinTime) {
+                    println("need refresh!")
+                    val token = genToken(username)
+                    call.respond(hashMapOf("token" to token))
+                } else {
+                    call.respond(hashMapOf("token" to null))
+                }
             } else {
-                call.respond(hashMapOf("token" to null))
+                badRequest(call, "Wrong JWT Token")
             }
         }
     }
@@ -78,11 +82,14 @@ fun Route.createUserRoute() {
         val password = call.parameters["password"]
         val serialNumber = call.parameters["serialNumber"]
         if (!username.isNullOrBlank() && !password.isNullOrBlank() && !serialNumber.isNullOrBlank()) {
-            val user = createUser(username, password, serialNumber)
-            if (user != null) {
-                call.respond(user)
+            if (isValidUsername(username) && isValidPassword(password) && isValidSerialNumber(serialNumber)) {
+                when (createUser(username, password, serialNumber)) {
+                    UserCheckStatus.USERNAME -> badRequest(call, "Username already Exists")
+                    UserCheckStatus.SERIALNUMBER -> badRequest(call, "Too many registrations")
+                    UserCheckStatus.SUCCESS -> call.respond("")
+                }
             } else {
-                badRequest(call, "username has been registered")
+                badRequest(call, "Wrong Username or Password or SerialNumber")
             }
         } else {
             badRequest(call)

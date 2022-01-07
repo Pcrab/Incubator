@@ -29,13 +29,13 @@ fun checkSerialNumber(serialNumber: String, pattern: Regex): Boolean {
     return pattern.matches(serialNumber)
 }
 
-fun checkSerialNumber(serialNumber: String, pattern: String = defaultSerialNumber): Boolean {
+fun isValidSerialNumber(serialNumber: String, pattern: String = defaultSerialNumber): Boolean {
     return checkSerialNumber(serialNumber, Regex(pattern))
 }
 
 suspend fun getIncubatorSerialNumber(call: ApplicationCall, pattern: String = defaultSerialNumber): String {
     val serialNumber = call.parameters["serialNumber"]!!
-    if (checkSerialNumber(serialNumber, pattern)) {
+    if (isValidSerialNumber(serialNumber, pattern)) {
         return serialNumber
     }
     badRequest(call)

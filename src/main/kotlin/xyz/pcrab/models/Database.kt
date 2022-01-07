@@ -29,7 +29,6 @@ fun updateContent(content: IncubatorGroup) {
 
 fun getContent(serialNumber: String): IncubatorGroup? {
     val col = incubatorDb.getCollection<IncubatorList>(serialNumber)
-//    col.ensureIndex("{'_id':-1}")
     val incubatorList = col.find().sort("{'_id':-1}").first()
     println(incubatorList)
     if (incubatorList != null) {
@@ -41,21 +40,24 @@ fun getContent(serialNumber: String): IncubatorGroup? {
     return null
 }
 
-fun getDbUser(username: String, password: String): User?{
+fun getDbUser(username: String, password: String): User? {
     val col = incubatorDb.getCollection<User>(userCollection)
     return col.findOne(User::username eq username, User::password eq password)
 }
 
-fun createDbUser(user: User): String? {
-    val session = user.username + user.password
+fun getDbUserUnsafe(username: String): User? {
     val col = incubatorDb.getCollection<User>(userCollection)
-    val userThroughUsername = col.findOne(User::username eq user.username)
-    if (userThroughUsername != null) {
-        return null
+    return col.findOne(User::username eq username)
+}
+
+fun createDbUser(user: User): UserCheckStatus {
+    val col = incubatorDb.getCollection<User>(userCollection)
+    if (getDbUserUnsafe(user.username) != null) {
+        return UserCheckStatus.USERNAME
     }
     val userWithSerialNumber = col.find(User::serialNumber eq user.serialNumber)
     if (!(0..10).contains(userWithSerialNumber.count())) {
-        return null
+        return UserCheckStatus.SERIALNUMBER
     }
     col.insertOne(
         User(
@@ -64,5 +66,5 @@ fun createDbUser(user: User): String? {
             user.serialNumber
         )
     )
-    return session
+    return UserCheckStatus.SUCCESS
 }
