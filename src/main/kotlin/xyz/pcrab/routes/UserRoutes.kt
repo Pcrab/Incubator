@@ -1,42 +1,21 @@
 package xyz.pcrab.routes
 
-import com.auth0.jwk.JwkProvider
-import com.auth0.jwt.JWT
-import com.auth0.jwt.algorithms.Algorithm
 import io.ktor.application.*
 import io.ktor.auth.*
-import io.ktor.auth.jwt.*
-import io.ktor.http.content.*
 import io.ktor.request.*
 import io.ktor.response.*
 import io.ktor.routing.*
+import io.ktor.sessions.*
 import xyz.pcrab.models.*
-import java.io.File
-import java.security.KeyFactory
-import java.security.interfaces.RSAPrivateKey
-import java.security.interfaces.RSAPublicKey
-import java.security.spec.PKCS8EncodedKeySpec
-import java.util.*
 
-fun Route.authRoute(secretObject: SecretObject, jwkProvider: JwkProvider) {
-    fun genToken(username: String): String? {
-        val publicKey = jwkProvider.get("77aa6010-5b6c-4c91-a75e-c09931d8e45b").publicKey
-        val keySpecPKCS8 = PKCS8EncodedKeySpec(Base64.getDecoder().decode(secretObject.privateKeyString))
-        val privateKey = KeyFactory.getInstance("RSA").generatePrivate(keySpecPKCS8)
-        return JWT.create()
-            .withAudience(secretObject.audience)
-            .withIssuer(secretObject.issuer)
-            .withClaim("username", username)
-            .withExpiresAt(Date(System.currentTimeMillis() + expireMaxTime))
-            .sign(Algorithm.RSA256(publicKey as RSAPublicKey, privateKey as RSAPrivateKey))
-
-    }
+fun Route.authRoute() {
 
     post("/user/login") {
         val username: String
         val password: String
         try {
             val user = call.receive<AuthUser>()
+            println("$user")
             username = user.username
             password = user.password
         } catch (e: Exception) {
@@ -45,33 +24,44 @@ fun Route.authRoute(secretObject: SecretObject, jwkProvider: JwkProvider) {
         if (username.isNotBlank() && password.isNotBlank()) {
             val dbUser = getUser(username, password)
             if (dbUser != null) {
-                val token = genToken(username)
-                println("token: $token")
-                call.respond(hashMapOf("token" to token))
+                call.sessions.set(UserSession(username = username))
+                return@post call.respondText("welcome, $username")
             } else {
-                notFound(call, "username or password not found")
+                return@post notFound(call, "username or password not found")
             }
-        } else {
-            badRequest(call)
         }
     }
 
-    authenticate("auth-jwt") {
+    authenticate("auth-session") {
         get("/hello") {
-            val principle = call.principal<JWTPrincipal>()
-            val username = principle!!.payload.getClaim("username").asString()
+            val principle = call.principal<UserSession>()!!
+            val username = principle.username
             if (isValidUsername(username) && getDbUserUnsafe(username) != null) {
-                val expiresAt = principle.expiresAt?.time?.minus(System.currentTimeMillis())
-                if (expiresAt != null && expiresAt < refreshMinTime) {
-                    println("need refresh!")
-                    val token = genToken(username)
-                    call.respond(hashMapOf("token" to token))
-                } else {
-                    call.respond(hashMapOf("token" to null))
-                }
+                call.sessions.set(UserSession(username = username))
+                return@get call.respondText("Cookie refreshed!")
             } else {
-                badRequest(call, "Wrong JWT Token")
+                return@get badRequest(call, "Wrong cookie!")
             }
+        }
+        get("/user/logout") {
+            call.sessions.clear<UserSession>()
+            call.respondText("Logout succeeded")
+        }
+        get("/user/incubator") {
+            val principle = call.principal<UserSession>()!!
+            val username = principle.username
+            call.sessions.set(UserSession(username = username))
+            if (isValidUsername(username)) {
+                val serialNumber = getDbUserUnsafe(username)?.serialNumber
+                if (serialNumber != null && isValidSerialNumber(serialNumber)) {
+                    val incubatorGroup = getIncubatorGroup(serialNumber)
+                    if (incubatorGroup != null) {
+                        return@get call.respond(incubatorGroup)
+                    }
+                }
+                return@get notFound(call, "serialNumber associated to $username not found")
+            }
+            return@get badRequest(call, "Wrong username")
         }
     }
 }
@@ -83,28 +73,21 @@ fun Route.createUserRoute() {
         val serialNumber = call.parameters["serialNumber"]
         if (!username.isNullOrBlank() && !password.isNullOrBlank() && !serialNumber.isNullOrBlank()) {
             if (isValidUsername(username) && isValidPassword(password) && isValidSerialNumber(serialNumber)) {
-                when (createUser(username, password, serialNumber)) {
+                return@post when (createUser(username, password, serialNumber)) {
                     UserCheckStatus.USERNAME -> badRequest(call, "Username already Exists")
                     UserCheckStatus.SERIALNUMBER -> badRequest(call, "Too many registrations")
                     UserCheckStatus.SUCCESS -> call.respond("")
                 }
             } else {
-                badRequest(call, "Wrong Username or Password or SerialNumber")
+                return@post badRequest(call, "Wrong Username or Password or SerialNumber")
             }
-        } else {
-            badRequest(call)
         }
     }
 }
 
-fun Application.registerUserRoutes(secretObject: SecretObject, jwkProvider: JwkProvider) {
+fun Application.registerUserRoutes() {
     routing {
-        authRoute(secretObject, jwkProvider)
+        authRoute()
         createUserRoute()
-
-        static(".well-known") {
-            staticRootFolder = File("certs")
-            file("jwks.json")
-        }
     }
 }

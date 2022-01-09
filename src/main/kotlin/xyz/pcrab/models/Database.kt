@@ -40,6 +40,16 @@ fun getContent(serialNumber: String): IncubatorGroup? {
     return null
 }
 
+fun getContents(serialNumber: String): IncubatorGroup {
+    val col = incubatorDb.getCollection<IncubatorList>(serialNumber)
+    val incubatorList = col.find().sort("{'_id':-1}").limit(5).toList()
+    println(incubatorList)
+    return IncubatorGroup(
+        serialNumber = serialNumber,
+        incubators = incubatorList[0].incubators
+    )
+}
+
 fun getDbUser(username: String, password: String): User? {
     val col = incubatorDb.getCollection<User>(userCollection)
     return col.findOne(User::username eq username, User::password eq password)

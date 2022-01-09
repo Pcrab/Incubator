@@ -1,56 +1,46 @@
 package xyz.pcrab
 
-import com.auth0.jwk.JwkProviderBuilder
 import io.ktor.application.*
 import io.ktor.auth.*
-import io.ktor.auth.jwt.*
 import io.ktor.features.*
 import io.ktor.http.*
 import io.ktor.serialization.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
-import xyz.pcrab.models.getSecretObject
+import io.ktor.sessions.*
+import xyz.pcrab.models.UserSession
 import xyz.pcrab.plugins.*
-import xyz.pcrab.routes.notFound
-import java.util.concurrent.TimeUnit
+import xyz.pcrab.routes.badRequest
 
+fun main() {
 
-fun main(args: Array<String>) {
-
-    val secretObject = getSecretObject(args)
-    val jwkProvider = JwkProviderBuilder(secretObject.issuer)
-        .cached(10, 24, TimeUnit.HOURS)
-        .rateLimited(10, 1, TimeUnit.MINUTES)
-        .build()
     embeddedServer(Netty, port = 8080) {
         install(ContentNegotiation) {
             json()
         }
         install(CORS) {
-            anyHost()
+            host("127.0.0.1")
+            allowCredentials = true
             header(HttpHeaders.ContentType)
-            header(HttpHeaders.Authorization)
+        }
+        install(Sessions) {
+            cookie<UserSession>("user_session", storage = SessionStorageMemory()) {
+//                cookie.maxAgeInSeconds = 86400
+                cookie.path = "/"
+            }
         }
         install(Authentication) {
-            jwt("auth-jwt") {
-                realm = secretObject.realm
-                verifier(jwkProvider, secretObject.issuer) {
-                    acceptLeeway(3)
+            session<UserSession>("auth-session") {
+                validate { session ->
+                    session
                 }
-                validate { credential ->
-                    if (credential.payload.getClaim("username").asString() != "") {
-                        JWTPrincipal(credential.payload)
-                    } else {
-                        null
-                    }
-                }
-                challenge { _, _ ->
-                    notFound(call, "token not found!")
+                challenge {
+                    badRequest(call, "cookie not found")
                 }
             }
         }
         install(XForwardedHeaderSupport)
-        configureRouting(secretObject, jwkProvider)
+        configureRouting()
         configureMonitoring()
 
     }.start(wait = true)

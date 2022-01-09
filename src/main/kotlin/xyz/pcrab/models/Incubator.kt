@@ -21,7 +21,7 @@ fun getIncubatorGroup(serialNumber: String): IncubatorGroup? {
     return getContent(serialNumber)
 }
 
-fun getIncubator(group: IncubatorGroup, id: Int): Incubator? {
-    return group.incubators.find { it.id == id }
-}
+//fun getIncubator(group: IncubatorGroup, id: Int): Incubator? {
+//    return group.incubators.find { it.id == id }
+//}
 

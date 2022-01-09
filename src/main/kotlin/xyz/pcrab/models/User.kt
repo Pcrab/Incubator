@@ -1,11 +1,22 @@
 package xyz.pcrab.models
 
+import io.ktor.auth.*
 import kotlinx.serialization.Serializable
 import java.security.MessageDigest
 
 @Serializable
 data class User(
     val username: String, val password: String, val serialNumber: String?
+)
+
+data class UserSession(
+    val username: String
+): Principal
+
+@Serializable
+data class AuthUser(
+    val username: String,
+    val password: String,
 )
 
 enum class UserCheckStatus {

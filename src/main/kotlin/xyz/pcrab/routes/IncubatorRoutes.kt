@@ -1,7 +1,6 @@
 package xyz.pcrab.routes
 
 import io.ktor.application.*
-import io.ktor.http.*
 import io.ktor.request.*
 import io.ktor.response.*
 import io.ktor.routing.*
@@ -19,7 +18,7 @@ fun Route.createNewIncubatorRoute() {
         val serialNumber = getIncubatorSerialNumber(call)
         val incubatorGroup = call.receive<IncubatorGroup>()
         updateIncubatorGroup(serialNumber, incubatorGroup)
-        call.respondText("finished!", status = HttpStatusCode.OK)
+        call.respondText("finished!")
     }
 }
 
