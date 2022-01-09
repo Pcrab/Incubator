@@ -1,10 +1,7 @@
-POST http://127.0.0.1:8080/incubator/0000-0000-0000-0001
-Content-Type: application/json
+POST http://127.0.0.1:8080/incubator
+Content-Type: text/plain
 
-{
-  "serialNumber": "0000-0000-0000-0001",
-  "incubators": [{"id": 0}, {"id": 1}]
-}
+0000-0000-0000-00010002684444222213200127244332212128
 
 ###
 GET http://127.0.0.1:8080/incubator/0000-0000-0000-0001

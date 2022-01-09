@@ -9,7 +9,6 @@ import io.ktor.sessions.*
 import xyz.pcrab.models.*
 
 fun Route.authRoute() {
-
     post("/user/login") {
         val username: String
         val password: String
@@ -33,37 +32,45 @@ fun Route.authRoute() {
     }
 
     authenticate("auth-session") {
-        get("/hello") {
-            val principle = call.principal<UserSession>()!!
-            val username = principle.username
-            if (isValidUsername(username) && getDbUserUnsafe(username) != null) {
-                call.sessions.set(UserSession(username = username))
-                return@get call.respondText("Cookie refreshed!")
-            } else {
-                return@get badRequest(call, "Wrong cookie!")
-            }
+        get("/user/hello") {
+            val username = getUsername(call) ?: return@get badRequest(call, "Wrong cookie!")
+            call.sessions.set(UserSession(username = username))
+            return@get call.respondText("Cookie refreshed!")
         }
         get("/user/logout") {
             call.sessions.clear<UserSession>()
             call.respondText("Logout succeeded")
         }
         get("/user/incubator") {
-            val principle = call.principal<UserSession>()!!
-            val username = principle.username
-            call.sessions.set(UserSession(username = username))
-            if (isValidUsername(username)) {
-                val serialNumber = getDbUserUnsafe(username)?.serialNumber
-                if (serialNumber != null && isValidSerialNumber(serialNumber)) {
-                    val incubatorGroup = getIncubatorGroup(serialNumber)
-                    if (incubatorGroup != null) {
-                        return@get call.respond(incubatorGroup)
-                    }
-                }
-                return@get notFound(call, "serialNumber associated to $username not found")
+            val serialNumber = getSerialNumber(call) ?: return@get badRequest(call, "Wrong cookie!")
+            val incubatorGroup = getIncubatorGroup(serialNumber)
+            if (incubatorGroup != null) {
+                return@get call.respond(incubatorGroup)
             }
-            return@get badRequest(call, "Wrong username")
+        }
+        post("/user/incubator") {
+            val incubatorControlGroup = call.receive<IncubatorControlGroup>()
+            updateIncubatorControlGroup(incubatorControlGroup)
+            return@post call.respondText("finish!")
         }
     }
+}
+
+fun getUsername(call: ApplicationCall): String? {
+    val username = call.principal<UserSession>()?.username ?: return null
+    if (!isValidUsername(username)) {
+        return null
+    }
+    return username
+}
+
+fun getSerialNumber(call: ApplicationCall): String? {
+    val username = getUsername(call) ?: return null
+    val serialNumber = getDbUserUnsafe(username)?.serialNumber ?: return null
+    if (!isValidSerialNumber(serialNumber)) {
+        return null
+    }
+    return serialNumber
 }
 
 fun Route.createUserRoute() {
@@ -78,10 +85,9 @@ fun Route.createUserRoute() {
                     UserCheckStatus.SERIALNUMBER -> badRequest(call, "Too many registrations")
                     UserCheckStatus.SUCCESS -> call.respond("")
                 }
-            } else {
-                return@post badRequest(call, "Wrong Username or Password or SerialNumber")
             }
         }
+        return@post badRequest(call, "Wrong Username or Password or SerialNumber")
     }
 }
 

@@ -8,16 +8,15 @@ import xyz.pcrab.models.*
 
 fun Route.getIncubatorStatusRoute() {
     get("/incubator/{serialNumber}") {
-        val group = getIncubatorGroup(getIncubatorSerialNumber(call)) ?: return@get notFound(call)
+        val group = getIncubatorControlGroup(getIncubatorSerialNumber(call))
         call.respond(group)
     }
 }
 
 fun Route.createNewIncubatorRoute() {
-    post("/incubator/{serialNumber}") {
-        val serialNumber = getIncubatorSerialNumber(call)
-        val incubatorGroup = call.receive<IncubatorGroup>()
-        updateIncubatorGroup(serialNumber, incubatorGroup)
+    post("/incubator") {
+        val content = call.receiveText()
+        updateIncubatorGroup(IncubatorGroup(content))
         call.respondText("finished!")
     }
 }

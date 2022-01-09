@@ -9,9 +9,21 @@ private const val incubatorDbName = "incubators"
 private const val userCollection = "users"
 private val incubatorDb = KMongo.createClient(uri).getDatabase(incubatorDbName)
 
+/*
+ * =============================================
+ * ============   Incubator Part   =============
+ * =============================================
+ */
+
 private class IncubatorList(
     val time: LocalDateTime,
     val incubators: MutableList<Incubator>
+)
+
+private class IncubatorControlList(
+    @Suppress("unused")
+    val time: LocalDateTime,
+    val incubatorControls: MutableList<IncubatorControl>
 )
 
 fun updateContent(content: IncubatorGroup) {
@@ -23,6 +35,19 @@ fun updateContent(content: IncubatorGroup) {
         IncubatorList(
             LocalDateTime.now(),
             incubators
+        )
+    )
+}
+
+fun updateContentControl(content: IncubatorControlGroup) {
+    val incubatorControls = mutableListOf<IncubatorControl>()
+    for (incubatorControl in content.incubatorControls) {
+        incubatorControls.add(incubatorControl)
+    }
+    incubatorDb.getCollection<IncubatorControlList>("${content.serialNumber}-control").insertOne(
+        IncubatorControlList(
+            LocalDateTime.now(),
+            incubatorControls
         )
     )
 }
@@ -40,15 +65,24 @@ fun getContent(serialNumber: String): IncubatorGroup? {
     return null
 }
 
-fun getContents(serialNumber: String): IncubatorGroup {
-    val col = incubatorDb.getCollection<IncubatorList>(serialNumber)
-    val incubatorList = col.find().sort("{'_id':-1}").limit(5).toList()
-    println(incubatorList)
-    return IncubatorGroup(
-        serialNumber = serialNumber,
-        incubators = incubatorList[0].incubators
-    )
+fun getContentControl(serialNumber: String): IncubatorControlGroup? {
+    val col = incubatorDb.getCollection<IncubatorControlList>("$serialNumber-control")
+    val incubatorControlList = col.find().sort("{'_id':-1}").first()
+    println(incubatorControlList)
+    if (incubatorControlList != null) {
+        return IncubatorControlGroup(
+            serialNumber = serialNumber,
+            incubatorControls = incubatorControlList.incubatorControls
+        )
+    }
+    return null
 }
+
+/*
+ * =============================================
+ * ===============   User Part   ===============
+ * =============================================
+ */
 
 fun getDbUser(username: String, password: String): User? {
     val col = incubatorDb.getCollection<User>(userCollection)
