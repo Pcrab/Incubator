@@ -47,4 +47,7 @@ dependencies {
 
     // KMongo
     implementation("org.litote.kmongo:kmongo:4.4.0")
+
+    // Redis
+    compileOnly("io.lettuce:lettuce-core:6.1.6.RELEASE")
 }

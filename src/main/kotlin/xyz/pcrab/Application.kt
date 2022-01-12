@@ -8,6 +8,7 @@ import io.ktor.serialization.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.sessions.*
+import xyz.pcrab.models.RedisStorage
 import xyz.pcrab.models.UserSession
 import xyz.pcrab.plugins.*
 import xyz.pcrab.routes.badRequest
@@ -20,12 +21,12 @@ fun main() {
         }
         install(CORS) {
             host("127.0.0.1")
+            host("127.0.0.1:8000")
             allowCredentials = true
             header(HttpHeaders.ContentType)
         }
         install(Sessions) {
-            cookie<UserSession>("user_session", storage = SessionStorageMemory()) {
-//                cookie.maxAgeInSeconds = 86400
+            cookie<UserSession>("user_session", storage = RedisStorage()) {
                 cookie.path = "/"
             }
         }
