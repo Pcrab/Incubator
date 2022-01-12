@@ -5,10 +5,10 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class IncubatorControl(
     val id: Int, // 3
-    val temperature: Double, // 3 xx.x
-    val co2: Double, // 4
-    val dust: Double, // 2
-    val light: Int, //2
+    val temperature: Double, // 5 +xxx.x
+    val co2: Double, // 5
+    val dust: Double, // 4
+    val light: Int, // 4
     val water: Int, // 1
 )
 
@@ -21,10 +21,10 @@ data class IncubatorControlGroup(
 @Serializable
 data class Incubator(
     val id: Int, // 3
-    val temperature: Double, // 3 xx.x
-    val co2: Double, // 4
-    val dust: Double, // 2
-    val light: Int, // 2
+    val temperature: Double, // 5 xx.x
+    val co2: Double, // 5
+    val dust: Double, // 4
+    val light: Int, // 4
     val water: Int, //1
     // all control takes 2
     val pi: Boolean,
@@ -41,9 +41,9 @@ data class IncubatorGroup(
 ) {
     constructor(content: String) : this(serialNumber = content.substring(0 until 19), incubators = mutableListOf()) {
         val incubatorControls = content.substring(19 until content.length)
-        for (count in 0 until incubatorControls.length / 17) {
+        for (count in 0 until incubatorControls.length / 24) {
             this.incubators.add(
-                buildIncubator(incubatorControls.substring(17 * count until 17 * (count + 1)))
+                buildIncubator(incubatorControls.substring(24 * count until 24 * (count + 1)))
             )
         }
     }
@@ -51,17 +51,17 @@ data class IncubatorGroup(
 
 fun buildIncubatorControl(content: String): IncubatorControl {
     val id = content.substring(0..2).toInt()
-    val temperature = content.substring(3..5).toDouble()
-    val co2 = content.substring(6..9).toDouble()
-    val dust = content.substring(10..11).toDouble()
-    val light = content.substring(12..13).toInt()
-    val water = content.substring(14).toInt()
+    val temperature = content.substring(3..7).toDouble()
+    val co2 = content.substring(8 ..12).toDouble()
+    val dust = content.substring(13 ..16).toDouble()
+    val light = content.substring(17 ..20).toInt()
+    val water = content.substring(21).toInt()
     return IncubatorControl(id, temperature, co2, dust, light, water)
 }
 
 fun buildIncubator(content: String): Incubator {
-    val incubatorControl = buildIncubatorControl(content.substring(0..14))
-    val control = content.substring(15..16).toInt()
+    val incubatorControl = buildIncubatorControl(content.substring(0..21))
+    val control = content.substring(22 ..23).toInt()
     val pi = 0b011111 or control == 0b111111
     val fan1 = 0b101111 or control == 0b111111
     val fan2 = 0b110111 or control == 0b111111
