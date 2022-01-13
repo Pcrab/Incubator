@@ -13,7 +13,7 @@ fun Route.authRoute() {
         val username: String
         val password: String
         try {
-            val user = call.receive<AuthUser>()
+            val user = call.receive<User>()
             println("$user")
             username = user.username
             password = user.password

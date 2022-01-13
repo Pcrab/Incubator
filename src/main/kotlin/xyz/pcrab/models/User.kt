@@ -6,18 +6,14 @@ import java.security.MessageDigest
 
 @Serializable
 data class User(
-    val username: String, val password: String, val serialNumber: String?
+    val username: String,
+    val password: String,
+    val serialNumber: String? = null
 )
 
 data class UserSession(
     val username: String
-): Principal
-
-@Serializable
-data class AuthUser(
-    val username: String,
-    val password: String,
-)
+) : Principal
 
 enum class UserCheckStatus {
     SUCCESS,
