@@ -45,9 +45,14 @@ dependencies {
     testImplementation("io.ktor:ktor-server-tests:$ktorVersion")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
 
+    // ORM
+    compileOnly("org.jetbrains.exposed:exposed:0.17.14")
+    compileOnly("com.zaxxer:HikariCP:5.0.1")
+    compileOnly("org.postgresql:postgresql:42.3.1")
+
     // KMongo
     implementation("org.litote.kmongo:kmongo:4.4.0")
 
     // Redis
-    compileOnly("io.lettuce:lettuce-core:6.1.6.RELEASE")
+    compileOnly("redis.clients:jedis:4.0.1")
 }

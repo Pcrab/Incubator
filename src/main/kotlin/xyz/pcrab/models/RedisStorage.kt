@@ -2,42 +2,37 @@ package xyz.pcrab.models
 
 import io.ktor.sessions.*
 import io.ktor.utils.io.*
-import io.lettuce.core.RedisClient
-import io.lettuce.core.api.sync.RedisCommands
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope.coroutineContext
+import kotlinx.coroutines.coroutineScope
+import redis.clients.jedis.JedisPool
 import java.io.ByteArrayOutputStream
 
-val sync: RedisCommands<String, String> = RedisClient.create("redis://localhost:6379").connect().sync()
-
 class RedisStorage : SessionStorage {
-    private fun read(id: String): ByteArray? {
-        return sync.get(id)?.toByteArray()
-    }
+    private val pool = JedisPool("localhost", 6379)
 
-    private fun write(id: String, data: ByteArray?) {
-        if (data != null) {
-            sync.set(id, data.joinToString())
-        } else {
-            throw Exception("need data to write")
+    override suspend fun invalidate(id: String) {
+        pool.resource.use { jedis ->
+            jedis.del(id)
         }
     }
 
-    override suspend fun invalidate(id: String) {
-        write(id, null)
-    }
-
     override suspend fun <R> read(id: String, consumer: suspend (ByteReadChannel) -> R): R {
-        val data = read(id) ?: throw NoSuchElementException("Session $id not found")
-        println(data)
-        return consumer(ByteReadChannel(data))
+        pool.resource.use { jedis ->
+            return jedis[id.toByteArray()]?.let { data -> consumer(ByteReadChannel(data)) }
+                ?: throw NoSuchElementException("Session $id not found")
+        }
     }
 
     override suspend fun write(id: String, provider: suspend (ByteWriteChannel) -> Unit) {
-        return provider(CoroutineScope(Dispatchers.IO).reader(coroutineContext, autoFlush = true) {
-            write(id, channel.readAvailable())
-        }.channel)
+        coroutineScope {
+            val channel = writer(Dispatchers.Unconfined, autoFlush = true) {
+                provider(channel)
+            }.channel
+            val data = channel.readAvailable()
+            pool.resource.use { jedis ->
+                jedis[id.toByteArray()] = data
+            }
+        }
     }
 }
 
