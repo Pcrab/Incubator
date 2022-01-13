@@ -11,4 +11,3 @@
 build/
 .idea/dataSources/
 .idea/httpRequests/
-/src/main/resources/secret.json
