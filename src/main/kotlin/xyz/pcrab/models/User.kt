@@ -3,17 +3,19 @@ package xyz.pcrab.models
 import io.ktor.auth.*
 import kotlinx.serialization.Serializable
 import xyz.pcrab.routes.isValidSerialNumber
+import java.security.MessageDigest
+import java.security.SecureRandom
 
 @Serializable
 class User(
     val username: String,
     val password: String,
-    val serialNumber: String? = null
+    private val serialNumber: String? = null
 ) {
     fun isValid(): Boolean {
         val username = this.username
         val password = this.password
-        if (username.isNotBlank() && password.isNotBlank() ) {
+        if (username.isNotBlank() && password.isNotBlank()) {
             if (isValidUsername(username) && isValidPassword(password)) {
                 return true
             }
@@ -21,6 +23,7 @@ class User(
         }
         return false
     }
+
     fun isValidWithSerialNumber(): Boolean {
         val username = this.username
         val password = this.password
@@ -35,30 +38,37 @@ class User(
     }
 
     fun dbCheck(): Boolean {
-        return DbUser.getDbUser(this)
+        val salt = DbUser.getSalt(this.username) ?: return false
+        return DbUser.getDbUser(
+            User(
+                this.username,
+                encryptPwd(this.password, salt),
+            )
+        )
     }
 
     fun dbCreate(): UserCheckStatus {
-//        val dbUser = User(
-//            username = this.username,
-//            password = this.password.encryptThroughSHA3512(),
-//            serialNumber = this.serialNumber
-//        )
-        return DbUser.createDbUser(this)
+        val random = SecureRandom()
+        var salt = ""
+        for (i in 0..128) {
+            salt += random.nextInt(16).toString(16)
+        }
+        println(salt)
+        return DbUser.createDbUser(
+            DbUser(
+                this.username,
+                encryptPwd(this.password, salt),
+                salt,
+                this.serialNumber
+            )
+        )
     }
 
 }
 
 data class UserSession(
     val username: String
-) : Principal {
-    fun isValid(): Boolean {
-        if (this.username.isNotBlank()) {
-            return true
-        }
-        return false
-    }
-}
+) : Principal
 
 enum class UserCheckStatus {
     SUCCESS,
@@ -88,12 +98,15 @@ private fun isValidPassword(password: String): Boolean {
     return hasDigit && hasLetter
 }
 
-//private fun String.encryptThroughSHA3512(): String {
-//    var str = this
-//    for (i in 1..100) {
-//        str += i.toString()
-//        str = MessageDigest.getInstance("SHA3-512").digest(this.toByteArray())
-//            .joinToString(separator = "") { eachByte -> "%02x".format(eachByte) }
-//    }
-//    return str
-//}
+private fun String.encryptThroughSHA3512(): String {
+    return MessageDigest.getInstance("SHA3-512").digest(this.toByteArray())
+        .joinToString(separator = "") { eachByte -> "%02x".format(eachByte) }
+}
+
+private fun encryptPwd(pwd: String, salt: String): String {
+    var result = ""
+    for (i in 0..10) {
+        result += (pwd + salt).encryptThroughSHA3512()
+    }
+    return result
+}

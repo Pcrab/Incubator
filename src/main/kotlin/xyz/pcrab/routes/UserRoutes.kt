@@ -7,7 +7,6 @@ import io.ktor.response.*
 import io.ktor.routing.*
 import io.ktor.sessions.*
 import xyz.pcrab.models.*
-import xyz.pcrab.models.DbUser.getDbUserUnsafe
 
 fun Route.authRoute() {
     post("/user/login") {
@@ -30,7 +29,7 @@ fun Route.authRoute() {
     authenticate("auth-session") {
         get("/user/hello") {
             val user = call.principal<UserSession>()
-            if (user != null && user.isValid()) {
+            if (user != null) {
                 call.sessions.set(UserSession(username = user.username))
                 return@get call.respondText("Cookie refreshed!")
             } else {
@@ -69,15 +68,12 @@ fun Route.authRoute() {
 
 private fun getUsername(call: ApplicationCall): String? {
     val user = call.principal<UserSession>() ?: return null
-    if (user.isValid()) {
-        return user.username
-    }
-    return null
+    return user.username
 }
 
 private fun getSerialNumber(call: ApplicationCall): String? {
     val username = getUsername(call) ?: return null
-    val serialNumber = getDbUserUnsafe(username)?.serialNumber ?: return null
+    val serialNumber = DbUser.getDbUserUnsafe(username)?.serialNumber ?: return null
     if (!isValidSerialNumber(serialNumber)) {
         return null
     }

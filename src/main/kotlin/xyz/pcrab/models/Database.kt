@@ -8,7 +8,7 @@ private const val incubatorCollectionName = "incubator"
 private const val userCollectionName = "users"
 private val incubatorDb = KMongo.createClient(uri).getDatabase(dbName)
 private val incubatorCol = incubatorDb.getCollection<IncubatorList>(incubatorCollectionName)
-private val userCol = incubatorDb.getCollection<User>(userCollectionName)
+private val userCol = incubatorDb.getCollection<DbUser>(userCollectionName)
 
 /*
  * =============================================
@@ -37,7 +37,8 @@ data class IncubatorList(
         }
 
         fun getContent(serialNumber: String): IncubatorGroup? {
-            val incubatorList = incubatorCol.findOne(IncubatorList::serialNumber eq serialNumber)?.incubators ?: return null
+            val incubatorList =
+                incubatorCol.findOne(IncubatorList::serialNumber eq serialNumber)?.incubators ?: return null
             return IncubatorGroup(
                 serialNumber = serialNumber,
                 incubators = incubatorList
@@ -62,30 +63,43 @@ data class IncubatorList(
  * =============================================
  */
 
-object DbUser {
-    fun getDbUser(user: User): Boolean {
-        return userCol.findOne(User::username eq user.username, User::password eq user.password) != null
-    }
+data class DbUser(
+    val username: String,
+    val password: String,
+    val salt: String,
+    val serialNumber: String?,
+) {
+    companion object {
 
-    fun getDbUserUnsafe(username: String): User? {
-        return userCol.findOne(User::username eq username)
-    }
+        fun getDbUser(user: User): Boolean {
+            return userCol.findOne(DbUser::username eq user.username, DbUser::password eq user.password) != null
+        }
 
-    fun createDbUser(user: User): UserCheckStatus {
-        if (getDbUserUnsafe(user.username) != null) {
-            return UserCheckStatus.USERNAME
+        fun getDbUserUnsafe(username: String): DbUser? {
+            return userCol.findOne(DbUser::username eq username)
         }
-        val userWithSerialNumber = userCol.find(User::serialNumber eq user.serialNumber)
-        if (!(0..10).contains(userWithSerialNumber.count())) {
-            return UserCheckStatus.SERIALNUMBER
+
+        fun getSalt(username: String): String? {
+            return userCol.findOne(DbUser::username eq username)?.salt
         }
-        userCol.insertOne(
-            User(
-                user.username,
-                user.password,
-                user.serialNumber
+
+        fun createDbUser(user: DbUser): UserCheckStatus {
+            if (getDbUserUnsafe(user.username) != null) {
+                return UserCheckStatus.USERNAME
+            }
+            val userWithSerialNumber = userCol.find(DbUser::serialNumber eq user.serialNumber)
+            if (!(0..10).contains(userWithSerialNumber.count())) {
+                return UserCheckStatus.SERIALNUMBER
+            }
+            userCol.insertOne(
+                DbUser(
+                    user.username,
+                    user.password,
+                    user.salt,
+                    user.serialNumber
+                )
             )
-        )
-        return UserCheckStatus.SUCCESS
+            return UserCheckStatus.SUCCESS
+        }
     }
 }
