@@ -16,11 +16,9 @@ fun Route.authRoute() {
             println("$user logged in.")
 
             if (user.isValid()) {
-                if (user.checkDb()) {
+                if (user.dbCheck()) {
                     call.sessions.set(UserSession(username = user.username))
                     return@post call.respondText("welcome, $user.username")
-                } else {
-                    return@post badRequest(call, "username already been used")
                 }
             }
             return@post notFound(call, "username or password not correct")
@@ -87,25 +85,21 @@ private fun getSerialNumber(call: ApplicationCall): String? {
 }
 
 fun Route.createUserRoute() {
-    post("/user/{username}/{password}/{serialNumber}") {
-        val username = call.parameters["username"]
-        val password = call.parameters["password"]
-        val serialNumber = call.parameters["serialNumber"]
-        if (username != null && password != null) {
-            val user = User(
-                username,
-                password,
-                serialNumber,
-            )
-            if (user.isValid()) {
+    post("/user/create") {
+        try {
+            val user = call.receive<User>()
+
+            if (user.isValidWithSerialNumber()) {
                 return@post when (user.dbCreate()) {
                     UserCheckStatus.USERNAME -> badRequest(call, "Username already Exists")
                     UserCheckStatus.SERIALNUMBER -> badRequest(call, "Too many registrations")
                     UserCheckStatus.SUCCESS -> call.respond("")
                 }
             }
+            return@post notFound(call, "username or password or serialNumber not correct")
+        } catch (e: Exception) {
+            return@post badRequest(call, "Wrong Format")
         }
-        return@post badRequest(call, "Wrong Username or Password or SerialNumber")
     }
 }
 
