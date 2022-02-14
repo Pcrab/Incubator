@@ -7,64 +7,77 @@ import io.ktor.response.*
 import io.ktor.routing.*
 import io.ktor.sessions.*
 import xyz.pcrab.models.*
+import xyz.pcrab.models.DbUser.getDbUserUnsafe
 
 fun Route.authRoute() {
     post("/user/login") {
-        val username: String
-        val password: String
         try {
             val user = call.receive<User>()
-            println("$user")
-            username = user.username
-            password = user.password
+            println("$user logged in.")
+
+            if (user.isValid()) {
+                if (user.checkDb()) {
+                    call.sessions.set(UserSession(username = user.username))
+                    return@post call.respondText("welcome, $user.username")
+                } else {
+                    return@post badRequest(call, "username already been used")
+                }
+            }
+            return@post notFound(call, "username or password not correct")
         } catch (e: Exception) {
             return@post badRequest(call, "Wrong Format")
-        }
-        if (username.isNotBlank() && password.isNotBlank()) {
-            val dbUser = getUser(username, password)
-            if (dbUser != null) {
-                call.sessions.set(UserSession(username = username))
-                return@post call.respondText("welcome, $username")
-            } else {
-                return@post notFound(call, "username or password not found")
-            }
         }
     }
 
     authenticate("auth-session") {
         get("/user/hello") {
-            val username = getUsername(call) ?: return@get badRequest(call, "Wrong cookie!")
-            call.sessions.set(UserSession(username = username))
-            return@get call.respondText("Cookie refreshed!")
+            val user = call.principal<UserSession>()
+            if (user != null && user.isValid()) {
+                call.sessions.set(UserSession(username = user.username))
+                return@get call.respondText("Cookie refreshed!")
+            } else {
+                return@get badRequest(call, "wrong cookie")
+            }
         }
         get("/user/logout") {
             call.sessions.clear<UserSession>()
-            call.respondText("Logout succeeded")
+            return@get call.respondText("Logout succeeded")
         }
         get("/user/incubator") {
             val serialNumber = getSerialNumber(call) ?: return@get badRequest(call, "Wrong cookie!")
             val incubatorGroup = getIncubatorGroup(serialNumber)
             if (incubatorGroup != null) {
                 return@get call.respond(incubatorGroup)
+            } else {
+                return@get badRequest(call, "Wrong username or serialNumber")
             }
         }
-        post("/user/incubator") {
+        post("/user/incubatorControl") {
             val incubatorControlGroup = call.receive<IncubatorControlGroup>()
             updateIncubatorControlGroup(incubatorControlGroup)
             return@post call.respondText("finish!")
         }
+        get("/user/incubatorControl") {
+            val serialNumber = getSerialNumber(call) ?: return@get badRequest(call, "Wrong cookie!")
+            val incubatorControlGroup = getIncubatorControlGroup(serialNumber)
+            if (incubatorControlGroup != null) {
+                return@get call.respond(incubatorControlGroup)
+            } else {
+                return@get badRequest(call, "Wrong username or serialNumber")
+            }
+        }
     }
 }
 
-fun getUsername(call: ApplicationCall): String? {
-    val username = call.principal<UserSession>()?.username ?: return null
-    if (!isValidUsername(username)) {
-        return null
+private fun getUsername(call: ApplicationCall): String? {
+    val user = call.principal<UserSession>() ?: return null
+    if (user.isValid()) {
+        return user.username
     }
-    return username
+    return null
 }
 
-fun getSerialNumber(call: ApplicationCall): String? {
+private fun getSerialNumber(call: ApplicationCall): String? {
     val username = getUsername(call) ?: return null
     val serialNumber = getDbUserUnsafe(username)?.serialNumber ?: return null
     if (!isValidSerialNumber(serialNumber)) {
@@ -78,9 +91,14 @@ fun Route.createUserRoute() {
         val username = call.parameters["username"]
         val password = call.parameters["password"]
         val serialNumber = call.parameters["serialNumber"]
-        if (!username.isNullOrBlank() && !password.isNullOrBlank() && !serialNumber.isNullOrBlank()) {
-            if (isValidUsername(username) && isValidPassword(password) && isValidSerialNumber(serialNumber)) {
-                return@post when (createUser(username, password, serialNumber)) {
+        if (username != null && password != null) {
+            val user = User(
+                username,
+                password,
+                serialNumber,
+            )
+            if (user.isValid()) {
+                return@post when (user.dbCreate()) {
                     UserCheckStatus.USERNAME -> badRequest(call, "Username already Exists")
                     UserCheckStatus.SERIALNUMBER -> badRequest(call, "Too many registrations")
                     UserCheckStatus.SUCCESS -> call.respond("")

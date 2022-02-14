@@ -2,18 +2,53 @@ package xyz.pcrab.models
 
 import io.ktor.auth.*
 import kotlinx.serialization.Serializable
+import xyz.pcrab.routes.isValidSerialNumber
 import java.security.MessageDigest
 
 @Serializable
-data class User(
+class User(
     val username: String,
     val password: String,
     val serialNumber: String? = null
-)
+) {
+    fun isValid(): Boolean {
+        val username = this.username
+        val password = this.password
+        val serialNumber = this.serialNumber
+        if (username.isNotBlank() && password.isNotBlank() && !serialNumber.isNullOrBlank()) {
+            if (isValidUsername(username) && isValidPassword(password) && isValidSerialNumber(serialNumber)) {
+                return true
+            }
+
+        }
+        return false
+    }
+
+    fun checkDb(): Boolean {
+        return DbUser.getDbUser(this)
+    }
+
+    fun dbCreate(): UserCheckStatus {
+        val dbUser = User(
+            username = this.username,
+            password = this.password.encryptThroughSHA3512(),
+            serialNumber = this.serialNumber
+        )
+        return DbUser.createDbUser(dbUser)
+    }
+
+}
 
 data class UserSession(
     val username: String
-) : Principal
+) : Principal {
+    fun isValid(): Boolean {
+        if (this.username.isNotBlank()) {
+            return true
+        }
+        return false
+    }
+}
 
 enum class UserCheckStatus {
     SUCCESS,
@@ -21,17 +56,7 @@ enum class UserCheckStatus {
     SERIALNUMBER,
 }
 
-fun String.encryptThroughSHA3512(): String {
-    var str = this
-    for (i in 1..100) {
-        str += i.toString()
-        str = MessageDigest.getInstance("SHA3-512").digest(this.toByteArray())
-            .joinToString(separator = "") { eachByte -> "%02x".format(eachByte) }
-    }
-    return str
-}
-
-fun isValidUsername(username: String): Boolean {
+private fun isValidUsername(username: String): Boolean {
     for (c in username) {
         if (!c.isLetterOrDigit()) {
             return false
@@ -40,7 +65,7 @@ fun isValidUsername(username: String): Boolean {
     return true
 }
 
-fun isValidPassword(password: String): Boolean {
+private fun isValidPassword(password: String): Boolean {
     var hasDigit = false
     var hasLetter = false
     for (c in password) {
@@ -53,10 +78,13 @@ fun isValidPassword(password: String): Boolean {
     return hasDigit && hasLetter
 }
 
-fun getUser(username: String, password: String): User? {
-    return getDbUser(username, password.encryptThroughSHA3512())
+private fun String.encryptThroughSHA3512(): String {
+    var str = this
+    for (i in 1..100) {
+        str += i.toString()
+        str = MessageDigest.getInstance("SHA3-512").digest(this.toByteArray())
+            .joinToString(separator = "") { eachByte -> "%02x".format(eachByte) }
+    }
+    return str
 }
 
-fun createUser(username: String, password: String, serialNumber: String): UserCheckStatus {
-    return createDbUser(User(username, password.encryptThroughSHA3512(), serialNumber))
-}

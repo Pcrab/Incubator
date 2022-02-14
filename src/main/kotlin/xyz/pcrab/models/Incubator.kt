@@ -16,7 +16,16 @@ data class IncubatorControl(
 data class IncubatorControlGroup(
     val serialNumber: String,
     val incubatorControls: MutableList<IncubatorControl>
-)
+) {
+    constructor(content: String) : this(serialNumber = content.substring(0 until 19), incubatorControls = mutableListOf()) {
+        val incubatorControls = content.substring(19 until content.length)
+        for (count in 0 until incubatorControls.length / 22) {
+            this.incubatorControls.add(
+                buildIncubatorControl(incubatorControls.substring(22 * count until 22 * (count + 1)))
+            )
+        }
+    }
+}
 
 @Serializable
 data class Incubator(
@@ -49,7 +58,7 @@ data class IncubatorGroup(
     }
 }
 
-fun buildIncubatorControl(content: String): IncubatorControl {
+private fun buildIncubatorControl(content: String): IncubatorControl {
     val id = content.substring(0..2).toInt()
     val temperature = content.substring(3..7).toDouble()
     val co2 = content.substring(8 ..12).toDouble()
@@ -59,7 +68,7 @@ fun buildIncubatorControl(content: String): IncubatorControl {
     return IncubatorControl(id, temperature, co2, dust, light, water)
 }
 
-fun buildIncubator(content: String): Incubator {
+private fun buildIncubator(content: String): Incubator {
     val incubatorControl = buildIncubatorControl(content.substring(0..21))
     val control = content.substring(22 ..23).toInt()
     val pi = 0b011111 or control == 0b111111
@@ -81,12 +90,12 @@ fun buildIncubator(content: String): Incubator {
 
 // Client side, need object
 fun getIncubatorGroup(serialNumber: String): IncubatorGroup? {
-    return getContent(serialNumber)
+    return IncubatorList.getContent(serialNumber)
 }
 
 // ESP8266 side, need String
-fun getIncubatorControlGroup(serialNumber: String): String {
-    val group = getContentControl(serialNumber) ?: return ""
+fun getIncubatorControlGroupString(serialNumber: String): String {
+    val group = IncubatorList.getContentControl(serialNumber) ?: return ""
     var str = group.serialNumber
     for (incubatorControl in group.incubatorControls) {
         str += String.format(
@@ -102,12 +111,16 @@ fun getIncubatorControlGroup(serialNumber: String): String {
     return str
 }
 
+// Client side, need object
+fun getIncubatorControlGroup(serialNumber: String): IncubatorControlGroup? {
+    return IncubatorList.getContentControl(serialNumber)
+}
 // ESP8266 side, receive String
 fun updateIncubatorGroup(content: IncubatorGroup) {
-    updateContent(content)
+    IncubatorList.updateContent(content)
 }
 
 // Client side, need object
 fun updateIncubatorControlGroup(content: IncubatorControlGroup) {
-    updateContentControl(content)
+    IncubatorList.updateContentControl(content)
 }

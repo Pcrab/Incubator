@@ -1,13 +1,14 @@
 package xyz.pcrab.models
 
 import org.litote.kmongo.*
-import java.time.LocalDateTime
-
 
 private const val uri = "mongodb://root:example@localhost:27017"
-private const val incubatorDbName = "incubators"
-private const val userCollection = "users"
-private val incubatorDb = KMongo.createClient(uri).getDatabase(incubatorDbName)
+private const val dbName = "incubators"
+private const val incubatorCollectionName = "incubator"
+private const val userCollectionName = "users"
+private val incubatorDb = KMongo.createClient(uri).getDatabase(dbName)
+private val incubatorCol = incubatorDb.getCollection<IncubatorList>(incubatorCollectionName)
+private val userCol = incubatorDb.getCollection<User>(userCollectionName)
 
 /*
  * =============================================
@@ -15,67 +16,44 @@ private val incubatorDb = KMongo.createClient(uri).getDatabase(incubatorDbName)
  * =============================================
  */
 
-private class IncubatorList(
-    val time: LocalDateTime,
-    val incubators: MutableList<Incubator>
-)
+data class IncubatorList(
+    private val serialNumber: String,
+    private val incubators: MutableList<Incubator>,
+    private val incubatorControls: MutableList<IncubatorControl>
+) {
+    companion object {
+        fun updateContent(content: IncubatorGroup) {
+            incubatorCol.updateOne(
+                IncubatorList::serialNumber eq content.serialNumber,
+                setValue(IncubatorList::incubators, content.incubators)
+            )
+        }
 
-private class IncubatorControlList(
-    @Suppress("unused")
-    val time: LocalDateTime,
-    val incubatorControls: MutableList<IncubatorControl>
-)
+        fun updateContentControl(content: IncubatorControlGroup) {
+            incubatorCol.updateOne(
+                IncubatorList::serialNumber eq content.serialNumber,
+                setValue(IncubatorList::incubatorControls, content.incubatorControls)
+            )
+        }
 
-fun updateContent(content: IncubatorGroup) {
-    val incubators = mutableListOf<Incubator>()
-    for (incubator in content.incubators) {
-        incubators.add(incubator)
+        fun getContent(serialNumber: String): IncubatorGroup? {
+            val incubatorList = incubatorCol.findOne(IncubatorList::serialNumber eq serialNumber)?.incubators ?: return null
+            return IncubatorGroup(
+                serialNumber = serialNumber,
+                incubators = incubatorList
+            )
+        }
+
+        fun getContentControl(serialNumber: String): IncubatorControlGroup? {
+            val incubatorControlList =
+                incubatorCol.findOne(IncubatorList::serialNumber eq serialNumber)?.incubatorControls ?: return null
+            return IncubatorControlGroup(
+                serialNumber = serialNumber,
+                incubatorControls = incubatorControlList
+            )
+        }
+
     }
-    incubatorDb.getCollection<IncubatorList>(content.serialNumber).insertOne(
-        IncubatorList(
-            LocalDateTime.now(),
-            incubators
-        )
-    )
-}
-
-fun updateContentControl(content: IncubatorControlGroup) {
-    val incubatorControls = mutableListOf<IncubatorControl>()
-    for (incubatorControl in content.incubatorControls) {
-        incubatorControls.add(incubatorControl)
-    }
-    incubatorDb.getCollection<IncubatorControlList>("${content.serialNumber}-control").insertOne(
-        IncubatorControlList(
-            LocalDateTime.now(),
-            incubatorControls
-        )
-    )
-}
-
-fun getContent(serialNumber: String): IncubatorGroup? {
-    val col = incubatorDb.getCollection<IncubatorList>(serialNumber)
-    val incubatorList = col.find().sort("{'_id':-1}").first()
-    println(incubatorList)
-    if (incubatorList != null) {
-        return IncubatorGroup(
-            serialNumber = serialNumber,
-            incubators = incubatorList.incubators
-        )
-    }
-    return null
-}
-
-fun getContentControl(serialNumber: String): IncubatorControlGroup? {
-    val col = incubatorDb.getCollection<IncubatorControlList>("$serialNumber-control")
-    val incubatorControlList = col.find().sort("{'_id':-1}").first()
-    println(incubatorControlList)
-    if (incubatorControlList != null) {
-        return IncubatorControlGroup(
-            serialNumber = serialNumber,
-            incubatorControls = incubatorControlList.incubatorControls
-        )
-    }
-    return null
 }
 
 /*
@@ -84,31 +62,30 @@ fun getContentControl(serialNumber: String): IncubatorControlGroup? {
  * =============================================
  */
 
-fun getDbUser(username: String, password: String): User? {
-    val col = incubatorDb.getCollection<User>(userCollection)
-    return col.findOne(User::username eq username, User::password eq password)
-}
-
-fun getDbUserUnsafe(username: String): User? {
-    val col = incubatorDb.getCollection<User>(userCollection)
-    return col.findOne(User::username eq username)
-}
-
-fun createDbUser(user: User): UserCheckStatus {
-    val col = incubatorDb.getCollection<User>(userCollection)
-    if (getDbUserUnsafe(user.username) != null) {
-        return UserCheckStatus.USERNAME
+object DbUser {
+    fun getDbUser(user: User): Boolean {
+        return userCol.findOne(User::username eq user.username, User::password eq user.password) != null
     }
-    val userWithSerialNumber = col.find(User::serialNumber eq user.serialNumber)
-    if (!(0..10).contains(userWithSerialNumber.count())) {
-        return UserCheckStatus.SERIALNUMBER
+
+    fun getDbUserUnsafe(username: String): User? {
+        return userCol.findOne(User::username eq username)
     }
-    col.insertOne(
-        User(
-            user.username,
-            user.password,
-            user.serialNumber
+
+    fun createDbUser(user: User): UserCheckStatus {
+        if (getDbUserUnsafe(user.username) != null) {
+            return UserCheckStatus.USERNAME
+        }
+        val userWithSerialNumber = userCol.find(User::serialNumber eq user.serialNumber)
+        if (!(0..10).contains(userWithSerialNumber.count())) {
+            return UserCheckStatus.SERIALNUMBER
+        }
+        userCol.insertOne(
+            User(
+                user.username,
+                user.password,
+                user.serialNumber
+            )
         )
-    )
-    return UserCheckStatus.SUCCESS
+        return UserCheckStatus.SUCCESS
+    }
 }

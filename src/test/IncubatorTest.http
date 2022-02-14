@@ -3,17 +3,9 @@ Content-Type: text/plain
 
 0000-0000-0000-0001000268440042221321012124
 
-
 ###
-GET http://127.0.0.1:8080/incubator/0000-0000-0000-0001
-Accept: application/json
 
-###
-GET http://127.0.0.1:8080/user/pcrab/pxw62316187
-Accept: text/plain
-
-###
-POST http://127.0.0.1:8080/user/pcrab/pxw62316187/0000-0000-0000-0001
+POST http://127.0.0.1:8080/incubator/control
 Content-Type: text/plain
 
-xxxx-xxxx-xxxx-xxxxiiitttttcccccddddllllwcc
+0000-0000-0000-00010002684400422213210121
