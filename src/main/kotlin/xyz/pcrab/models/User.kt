@@ -3,7 +3,6 @@ package xyz.pcrab.models
 import io.ktor.auth.*
 import kotlinx.serialization.Serializable
 import xyz.pcrab.routes.isValidSerialNumber
-import java.security.MessageDigest
 
 @Serializable
 class User(
@@ -12,6 +11,17 @@ class User(
     val serialNumber: String? = null
 ) {
     fun isValid(): Boolean {
+        val username = this.username
+        val password = this.password
+        if (username.isNotBlank() && password.isNotBlank() ) {
+            if (isValidUsername(username) && isValidPassword(password)) {
+                return true
+            }
+
+        }
+        return false
+    }
+    fun isValidWithSerialNumber(): Boolean {
         val username = this.username
         val password = this.password
         val serialNumber = this.serialNumber
@@ -24,17 +34,17 @@ class User(
         return false
     }
 
-    fun checkDb(): Boolean {
+    fun dbCheck(): Boolean {
         return DbUser.getDbUser(this)
     }
 
     fun dbCreate(): UserCheckStatus {
-        val dbUser = User(
-            username = this.username,
-            password = this.password.encryptThroughSHA3512(),
-            serialNumber = this.serialNumber
-        )
-        return DbUser.createDbUser(dbUser)
+//        val dbUser = User(
+//            username = this.username,
+//            password = this.password.encryptThroughSHA3512(),
+//            serialNumber = this.serialNumber
+//        )
+        return DbUser.createDbUser(this)
     }
 
 }
@@ -78,13 +88,12 @@ private fun isValidPassword(password: String): Boolean {
     return hasDigit && hasLetter
 }
 
-private fun String.encryptThroughSHA3512(): String {
-    var str = this
-    for (i in 1..100) {
-        str += i.toString()
-        str = MessageDigest.getInstance("SHA3-512").digest(this.toByteArray())
-            .joinToString(separator = "") { eachByte -> "%02x".format(eachByte) }
-    }
-    return str
-}
-
+//private fun String.encryptThroughSHA3512(): String {
+//    var str = this
+//    for (i in 1..100) {
+//        str += i.toString()
+//        str = MessageDigest.getInstance("SHA3-512").digest(this.toByteArray())
+//            .joinToString(separator = "") { eachByte -> "%02x".format(eachByte) }
+//    }
+//    return str
+//}
