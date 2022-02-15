@@ -6,6 +6,7 @@ import io.ktor.features.*
 import io.ktor.http.*
 import io.ktor.serialization.*
 import io.ktor.sessions.*
+import xyz.pcrab.models.IncubatorSession
 import xyz.pcrab.models.RedisStorage
 import xyz.pcrab.models.UserSession
 import xyz.pcrab.plugins.*
@@ -30,9 +31,20 @@ fun Application.module(@Suppress("UNUSED_PARAMETER") testing: Boolean = false) {
         cookie<UserSession>("user_session", storage = RedisStorage()) {
             cookie.path = "/"
         }
+        cookie<IncubatorSession>("inc_session", storage = RedisStorage()) {
+            cookie.path = "/"
+        }
     }
     install(Authentication) {
-        session<UserSession>("auth-session") {
+        session<UserSession>("user-session") {
+            validate { session ->
+                session
+            }
+            challenge {
+                badRequest(call, "cookie not found")
+            }
+        }
+        session<IncubatorSession>("inc-session") {
             validate { session ->
                 session
             }
