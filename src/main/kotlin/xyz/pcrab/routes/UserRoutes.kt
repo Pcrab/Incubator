@@ -26,7 +26,7 @@ fun Route.authRoute() {
         }
     }
 
-    authenticate("auth-session") {
+    authenticate("user-session") {
         get("/user/hello") {
             val user = call.principal<UserSession>()
             if (user != null) {
