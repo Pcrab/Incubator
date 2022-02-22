@@ -49,9 +49,11 @@ data class Incubator(
     val pump: Boolean,
     val beep: Boolean,
     val led: Boolean,
+    val time: Int, // 8
+    val days: Int, // 1
 )
 
-private const val incubatorLength = 30
+private const val incubatorLength = 38
 
 @Serializable
 data class IncubatorGroup(
@@ -72,8 +74,8 @@ data class IncubatorGroup(
 
 private fun buildIncubatorControl(content: String): IncubatorControl {
     val id = content[0].toString().toInt()
-    val temperatureLow = content.substring(1..5).toDouble()
-    val temperatureHigh = content.substring(6..10).toDouble()
+    val temperatureHigh = content.substring(1..5).toDouble()
+    val temperatureLow = content.substring(6..10).toDouble()
     val light = content[11].toString().toInt()
     val dust = content[12].toString().toInt()
     return IncubatorControl(id, temperatureLow, temperatureHigh, light, dust)
@@ -93,6 +95,8 @@ private fun buildIncubator(content: String): Incubator {
     val pump = content[27] != '0'
     val beep = content[28] != '0'
     val led = content[29] != '0'
+    val time = content.substring(30..37).toInt()
+    val days = if (content[38] == '0') 7 else 10
     return Incubator(
         id,
         mode,
@@ -101,7 +105,9 @@ private fun buildIncubator(content: String): Incubator {
         light,
         dust,
         water,
-        pi, fan1, fan2, pump, beep, led
+        pi, fan1, fan2, pump, beep, led,
+        time,
+        days
     )
 }
 
@@ -112,23 +118,20 @@ fun getIncubatorGroup(serialNumber: String): IncubatorGroup? {
 
 // ESP8266 side, need String
 fun getIncubatorControlGroupString(serialNumber: String): String {
+    println(serialNumber)
     val group = IncubatorList.getContentControl(serialNumber) ?: return ""
-    var str = group.serialNumber
+    var str = ""
     for (incubatorControl in group.incubatorControls) {
         str += String.format(
-            "%03d%05.1f%05.1f%1d%1d",
+            "%01d%05.1f%05.1f%1d%1d",
             incubatorControl.id,
-            incubatorControl.temperatureLow,
             incubatorControl.temperatureHigh,
+            incubatorControl.temperatureLow,
             incubatorControl.light,
             incubatorControl.dust,
         )
-        println(incubatorControl.id)
-        println(incubatorControl.temperatureLow)
-        println(incubatorControl.temperatureHigh)
-        println(incubatorControl.light)
-        println(incubatorControl.dust)
     }
+    println(str)
     return str
 }
 

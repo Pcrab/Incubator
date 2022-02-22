@@ -24,6 +24,7 @@ fun Application.module(@Suppress("UNUSED_PARAMETER") testing: Boolean = false) {
     install(CORS) {
         host("127.0.0.1")
         host("127.0.0.1:8000")
+        host("192.168.4.1")
         allowCredentials = true
         header(HttpHeaders.ContentType)
     }
@@ -36,7 +37,7 @@ fun Application.module(@Suppress("UNUSED_PARAMETER") testing: Boolean = false) {
         }
     }
     install(Authentication) {
-        session<UserSession>("user-session") {
+        session<IncubatorSession>("inc-session") {
             validate { session ->
                 session
             }
@@ -44,7 +45,7 @@ fun Application.module(@Suppress("UNUSED_PARAMETER") testing: Boolean = false) {
                 badRequest(call, "cookie not found")
             }
         }
-        session<IncubatorSession>("inc-session") {
+        session<UserSession>("user-session") {
             validate { session ->
                 session
             }

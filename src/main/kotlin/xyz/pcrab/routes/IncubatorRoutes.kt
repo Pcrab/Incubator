@@ -10,8 +10,9 @@ import xyz.pcrab.models.*
 
 fun Route.getIncubatorStatusRoute() {
     authenticate("inc-session") {
-        get("/incubator/{serialNumber}") {
-            val group = getIncubatorControlGroupString(getIncubatorSerialNumber(call))
+        get("/incubator") {
+            val serialNumber = call.principal<IncubatorSession>()?.serialNumber ?: return@get notFound(call, "error serialNumber")
+            val group = getIncubatorControlGroupString(serialNumber)
             call.respond(group)
         }
     }
@@ -21,12 +22,20 @@ fun Route.createNewIncubatorRoute() {
     authenticate("inc-session") {
         post("/incubator") {
             val content = call.receiveText()
-            updateIncubatorGroup(IncubatorGroup(content))
+            println(content)
+            val serialNumber = call.principal<IncubatorSession>()?.serialNumber ?: return@post badRequest(call, "")
+            updateIncubatorGroup(IncubatorGroup(serialNumber + content))
             call.respondText("finished!")
         }
         post("/incubator/control") {
             val content = call.receiveText()
-            updateIncubatorControlGroup(IncubatorControlGroup(content))
+            val serialNumber = call.principal<IncubatorSession>()?.serialNumber ?: return@post badRequest(call, "")
+            println(content)
+//            println(serialNumber + content)
+//            println(call.request.header("Cookie"))
+//            println(call.request.headers)
+//            println("cookies: ${call.request.cookies.rawCookies}")
+            updateIncubatorControlGroup(IncubatorControlGroup(serialNumber + content))
             call.respondText("finished!")
         }
     }
@@ -37,6 +46,7 @@ fun Route.loginRoute() {
         val serialNumber = call.receiveText()
         if (getIncubatorGroup(serialNumber) != null) {
             println("$serialNumber logged in...")
+            call.sessions.clear<IncubatorSession>()
             call.sessions.set(IncubatorSession(serialNumber = serialNumber))
             return@post call.respondText("Welcome, $serialNumber")
         }
@@ -51,15 +61,6 @@ fun checkSerialNumber(serialNumber: String, pattern: Regex): Boolean {
 
 fun isValidSerialNumber(serialNumber: String, pattern: String = defaultSerialNumber): Boolean {
     return checkSerialNumber(serialNumber, Regex(pattern))
-}
-
-suspend fun getIncubatorSerialNumber(call: ApplicationCall, pattern: String = defaultSerialNumber): String {
-    val serialNumber = call.parameters["serialNumber"]!!
-    if (isValidSerialNumber(serialNumber, pattern)) {
-        return serialNumber
-    }
-    badRequest(call)
-    return ""
 }
 
 fun Application.registerIncubatorRoutes() {
