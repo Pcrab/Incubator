@@ -5,10 +5,12 @@ import io.ktor.utils.io.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import redis.clients.jedis.JedisPool
+import redis.clients.jedis.params.SetParams
 import java.io.ByteArrayOutputStream
 
 class RedisStorage : SessionStorage {
     private val pool = JedisPool("redis", 6379)
+    private val param = SetParams().ex(129600) // 15 days
 
     override suspend fun invalidate(id: String) {
         pool.resource.use { jedis ->
@@ -30,7 +32,8 @@ class RedisStorage : SessionStorage {
             }.channel
             val data = channel.readAvailable()
             pool.resource.use { jedis ->
-                jedis[id.toByteArray()] = data
+                jedis.set(id.toByteArray(), data, param)
+//                jedis[id.toByteArray()] = data
             }
         }
     }
