@@ -2,7 +2,7 @@ package xyz.pcrab.models
 
 import org.litote.kmongo.*
 
-private const val uri = "mongodb://root:example@localhost:27017"
+private const val uri = "mongodb://root:example@mongo:27017"
 private const val dbName = "incubators"
 private const val incubatorCollectionName = "incubator"
 private const val userCollectionName = "users"

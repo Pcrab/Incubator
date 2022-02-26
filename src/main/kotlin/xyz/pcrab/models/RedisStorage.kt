@@ -8,7 +8,7 @@ import redis.clients.jedis.JedisPool
 import java.io.ByteArrayOutputStream
 
 class RedisStorage : SessionStorage {
-    private val pool = JedisPool("localhost", 6379)
+    private val pool = JedisPool("redis", 6379)
 
     override suspend fun invalidate(id: String) {
         pool.resource.use { jedis ->

@@ -23,8 +23,8 @@ fun Application.module(@Suppress("UNUSED_PARAMETER") testing: Boolean = false) {
     }
     install(CORS) {
         host("127.0.0.1")
-        host("127.0.0.1:8000")
         host("192.168.4.1")
+        host("incubator.pcrab.xyz")
         allowCredentials = true
         header(HttpHeaders.ContentType)
     }

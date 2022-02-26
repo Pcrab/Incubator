@@ -49,5 +49,5 @@ dependencies {
     implementation("org.litote.kmongo:kmongo:4.4.0")
 
     // Redis
-    compileOnly("redis.clients:jedis:4.0.1")
+    implementation("redis.clients:jedis:4.1.0")
 }
