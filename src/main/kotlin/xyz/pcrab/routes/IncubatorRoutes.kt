@@ -23,13 +23,13 @@ fun Route.createNewIncubatorRoute() {
         post("/incubator") {
             val content = call.receiveText()
             println(content)
-            val serialNumber = call.principal<IncubatorSession>()?.serialNumber ?: return@post badRequest(call, "")
+            val serialNumber = call.principal<IncubatorSession>()?.serialNumber ?: return@post badRequest(call, "Wrong Session SerialNumber")
             updateIncubatorGroup(IncubatorGroup(serialNumber + content))
             call.respondText("finished!")
         }
         post("/incubator/control") {
             val content = call.receiveText()
-            val serialNumber = call.principal<IncubatorSession>()?.serialNumber ?: return@post badRequest(call, "")
+            val serialNumber = call.principal<IncubatorSession>()?.serialNumber ?: return@post badRequest(call, "Wrong Session SerialNumber")
             println(content)
 //            println(serialNumber + content)
 //            println(call.request.header("Cookie"))
